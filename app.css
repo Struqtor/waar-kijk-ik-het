@@ -376,9 +376,12 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
 .btn-ghost { background: transparent; border: 1.5px solid var(--line); color: var(--ink); }
 
 /* Dialogs */
+/* Alleen de inhoud scrolt; de kop met "Klaar" blijft altijd in beeld, ook naast de iPhone-statusbalk. */
 dialog {
   width: min(560px, calc(100vw - 24px));
   max-height: min(84vh, 760px);
+  max-height: min(760px, calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 32px));
+  overflow: hidden;
   padding: 0;
   border: 1px solid var(--line);
   border-radius: 16px;
@@ -389,6 +392,7 @@ dialog {
 dialog[open] { display: flex; flex-direction: column; }
 dialog::backdrop { background: rgb(10 14 24 / .5); }
 .dlg-head {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -397,17 +401,25 @@ dialog::backdrop { background: rgb(10 14 24 / .5); }
   border-bottom: 1px solid var(--line);
 }
 .dlg-head h2 { margin: 0; padding-top: 3px; font: 700 21px/1 var(--f-display); letter-spacing: .03em; text-transform: uppercase; }
-.x {
-  width: 36px;
-  height: 36px;
+.done {
+  min-height: 38px;
+  padding: 0 18px;
   border: 0;
-  border-radius: 8px;
-  background: var(--surface-2);
-  font-size: 22px;
-  line-height: 1;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 650;
   cursor: pointer;
 }
-.dlg-body { display: grid; gap: 14px; padding: 16px 18px 20px; overflow: auto; }
+.dlg-body {
+  display: grid;
+  gap: 14px;
+  min-height: 0;
+  padding: 16px 18px 20px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
 .field { display: grid; gap: 6px; }
 .subs {
   display: grid;

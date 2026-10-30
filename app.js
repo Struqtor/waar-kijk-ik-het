@@ -558,10 +558,15 @@ function start() {
   loadList();
 }
 
+// Elk open venster krijgt een stap in de geschiedenis, zodat de terugknop of -veeg het sluit.
 function openDialog(dlg) {
   if (typeof dlg.showModal === 'function') dlg.showModal();
   else dlg.setAttribute('open', '');
+  try { history.pushState({ dialog: dlg.id }, ''); } catch { /* geschiedenis niet beschikbaar */ }
 }
+window.addEventListener('popstate', () => {
+  document.querySelectorAll('dialog[open]').forEach((dlg) => dlg.close());
+});
 
 $('#token-form').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -659,6 +664,9 @@ document.addEventListener('click', (e) => {
 });
 document.querySelectorAll('dialog').forEach((dlg) => {
   dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
+  dlg.addEventListener('close', () => {
+    if (history.state?.dialog === dlg.id) history.back();
+  });
 });
 
 renderCountry();
