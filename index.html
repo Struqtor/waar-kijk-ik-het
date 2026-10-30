@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' https://image.tmdb.org data:; connect-src https://api.themoviedb.org; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Waar kijk ik">
+<title>Waar kijk ik het?</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='6' width='26' height='18' rx='4' fill='%23141A2C'/%3E%3Crect x='7' y='26' width='4' height='3' rx='1' fill='%231D8A4C'/%3E%3Crect x='12' y='26' width='4' height='3' rx='1' fill='%23B88600'/%3E%3Crect x='17' y='26' width='4' height='3' rx='1' fill='%232E6BD3'/%3E%3Crect x='22' y='26' width='4' height='3' rx='1' fill='%23CF3F37'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="app.css">
+<script src="app.js" defer></script>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="bar">
+      <h1>Waar kijk ik het?</h1>
+      <button id="country-btn" class="pill-btn" type="button" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z"/></svg>
+        <span id="country-name">…</span>
+        <span id="country-src" class="src"></span>
+      </button>
+      <button id="settings-btn" class="pill-btn" type="button" aria-haspopup="dialog">Mijn diensten</button>
+    </div>
+    <form id="search-form" class="search" role="search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Zm5.3-2.2L21 21"/></svg>
+      <label class="sr" for="q">Zoek een film of serie</label>
+      <input id="q" type="search" placeholder="Zoek een film of serie" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+    </form>
+    <div class="seg" role="group" aria-label="Soort">
+      <button type="button" data-type="all" aria-pressed="true">Alles</button>
+      <button type="button" data-type="movie" aria-pressed="false">Films</button>
+      <button type="button" data-type="tv" aria-pressed="false">Series</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <section id="setup" class="panel" aria-labelledby="setup-title" hidden>
+      <h2 id="setup-title" class="list-title">Eenmalig instellen</h2>
+      <p>De gegevens komen van TMDB, een open filmdatabank die de streaminggegevens van JustWatch doorgeeft. Daarvoor heb je een gratis, persoonlijke sleutel nodig.</p>
+      <ol class="steps">
+        <li>Maak een gratis account op <a href="https://www.themoviedb.org/signup" target="_blank" rel="noopener noreferrer">themoviedb.org</a>.</li>
+        <li>Open <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener noreferrer">Instellingen › API</a> en vraag een sleutel aan voor persoonlijk gebruik.</li>
+        <li>Kopieer het <strong>API Read Access Token</strong> (de lange sleutel) en plak het hieronder.</li>
+      </ol>
+      <form id="token-form" class="token-form">
+        <label for="token-input">TMDB-sleutel</label>
+        <div class="row">
+          <input id="token-input" type="password" autocomplete="off" spellcheck="false" placeholder="eyJhbGciOi…">
+          <button class="btn" type="submit">Opslaan</button>
+        </div>
+        <p id="token-msg" class="hint" role="status">De sleutel blijft in deze browser en gaat alleen naar api.themoviedb.org. Hij geeft enkel leestoegang.</p>
+      </form>
+    </section>
+
+    <p id="region-note" class="notice" role="status" hidden></p>
+    <p id="notice" class="notice" role="alert" hidden></p>
+
+    <section id="list" hidden>
+      <div class="list-head">
+        <h2 id="list-title" class="list-title">Populair deze week</h2>
+        <ul class="legend" aria-label="Legenda">
+          <li><span class="key key-sub"></span>Abonnement</li>
+          <li><span class="key key-free"></span>Gratis</li>
+          <li><span class="key key-rent"></span>Huren</li>
+          <li><span class="key key-buy"></span>Kopen</li>
+        </ul>
+      </div>
+      <ol id="results" class="results"></ol>
+    </section>
+  </div>
+</main>
+
+<footer class="foot">
+  <div class="wrap">Beschikbaarheid: JustWatch, via TMDB. Deze app gebruikt de TMDB-API maar is niet goedgekeurd of gecertificeerd door TMDB.</div>
+</footer>
+
+<dialog id="country-dlg" aria-labelledby="country-dlg-title">
+  <div class="dlg-head">
+    <h2 id="country-dlg-title">Land</h2>
+    <button class="x" type="button" data-close aria-label="Sluiten">×</button>
+  </div>
+  <div class="dlg-body">
+    <p class="hint">Streamingdiensten tonen het aanbod van het land waar je bent. Je locatie wordt op dit toestel omgezet naar een land; je coördinaten worden niet bewaard of verstuurd.</p>
+    <div>
+      <button id="locate-btn" class="btn" type="button">Gebruik mijn locatie</button>
+      <p id="locate-msg" class="hint" role="status"></p>
+    </div>
+    <div class="field">
+      <label for="country-select">Of kies zelf een land</label>
+      <select id="country-select"></select>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="settings-dlg" aria-labelledby="settings-title">
+  <div class="dlg-head">
+    <h2 id="settings-title">Mijn diensten</h2>
+    <button class="x" type="button" data-close aria-label="Sluiten">×</button>
+  </div>
+  <div class="dlg-body">
+    <p class="hint">Vink aan waar je een abonnement op hebt. Titels die daarin zitten, krijgen een groene markering. Aanbod in <span id="subs-country"></span>.</p>
+    <label class="sr" for="subs-filter">Zoek een dienst</label>
+    <input id="subs-filter" type="search" placeholder="Zoek een dienst" autocomplete="off">
+    <ul id="subs" class="subs"></ul>
+    <section class="token-box">
+      <h3>TMDB-sleutel</h3>
+      <p id="token-state" class="hint"></p>
+      <button id="token-clear" class="btn btn-ghost" type="button">Sleutel wissen</button>
+    </section>
+  </div>
+</dialog>
+</body>
+</html>
