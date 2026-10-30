@@ -568,8 +568,10 @@ window.addEventListener('popstate', () => {
   document.querySelectorAll('dialog[open]').forEach((dlg) => dlg.close());
 });
 
+let savingToken = false;
 $('#token-form').addEventListener('submit', async (e) => {
   e.preventDefault();
+  if (savingToken) return;
   const input = $('#token-input');
   const msg = $('#token-msg');
   const token = input.value.trim().replace(/^Bearer\s+/i, '');
@@ -582,6 +584,7 @@ $('#token-form').addEventListener('submit', async (e) => {
     return;
   }
   msg.textContent = 'Sleutel controleren…';
+  savingToken = true;
   state.token = token;
   try {
     await api('/authentication');
@@ -592,8 +595,22 @@ $('#token-form').addEventListener('submit', async (e) => {
   } catch (err) {
     state.token = '';
     msg.textContent = MESSAGES[err.kind] || MESSAGES.http;
+  } finally {
+    savingToken = false;
   }
 });
+
+// Een volledige sleutel plakken of laten invullen door 1Password slaat hem meteen op.
+let autoSave;
+const autoSaveToken = () => {
+  clearTimeout(autoSave);
+  const v = $('#token-input').value.trim();
+  if (/^eyJ[\w-]+\.[\w-]+\.[\w-]+$/.test(v) || /^[a-f0-9]{32}$/i.test(v)) {
+    autoSave = setTimeout(() => $('#token-form').requestSubmit(), 300);
+  }
+};
+$('#token-input').addEventListener('input', autoSaveToken);
+$('#token-input').addEventListener('change', autoSaveToken);
 
 let debounce;
 $('#q').addEventListener('input', () => {

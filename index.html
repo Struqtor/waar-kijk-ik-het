@@ -48,13 +48,16 @@
         <li>Open <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener noreferrer">Instellingen › API</a> en vraag een sleutel aan voor persoonlijk gebruik.</li>
         <li>Kopieer het <strong>API Read Access Token</strong> (de lange sleutel) en plak het hieronder.</li>
       </ol>
-      <form id="token-form" class="token-form">
+      <form id="token-form" class="token-form" autocomplete="on">
+        <!-- Vaste gebruikersnaam, zodat een wachtwoordbeheerder de sleutel als login kan bewaren en invullen. -->
+        <input id="token-user" class="sr" type="text" name="username" autocomplete="username" value="TMDB" tabindex="-1" aria-hidden="true">
         <label for="token-input">TMDB-sleutel</label>
         <div class="row">
-          <input id="token-input" type="password" autocomplete="off" spellcheck="false" placeholder="eyJhbGciOi…">
+          <input id="token-input" type="password" name="password" autocomplete="current-password" autocapitalize="off" spellcheck="false" placeholder="eyJhbGciOi…">
           <button class="btn" type="submit">Opslaan</button>
         </div>
         <p id="token-msg" class="hint" role="status">De sleutel blijft in deze browser en gaat alleen naar api.themoviedb.org. Hij geeft enkel leestoegang.</p>
+        <p class="hint">Bewaar de sleutel in je wachtwoordbeheerder, zoals 1Password, met het adres van deze site als website. Dan vul je hem op elk toestel met één tik in.</p>
       </form>
     </section>
 
