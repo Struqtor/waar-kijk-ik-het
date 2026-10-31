@@ -28,6 +28,32 @@ Bij elke versie:
 
 Wat besproken is maar nog niet gebouwd, staat in [BACKLOG.md](BACKLOG.md).
 
+## 1.1.0 — 2026-10-31
+
+**De filter "Hier te zien".** Er komt een schakelaar bij, dus het tweede
+cijfer.
+
+- **Nieuwe schakelaar** onder Alles · Films · Series, met drie standen:
+  - **Alles:** zoals voorheen.
+  - **Hier te zien:** verbergt titels die in het gekozen land nergens te zien
+    zijn. Huren en kopen tellen mee.
+  - **In mijn diensten:** toont alleen titels die in een dienst zitten die je
+    aanvinkte. Play, Streamz en Arte tellen hier niet mee, want hun aanbod is
+    onbekend.
+
+  De keuze blijft bewaard op het toestel.
+- Een regel boven de lijst zegt hoeveel titels de filter verbergt, en
+  waarom. Heb je bij "In mijn diensten" nog niets aangevinkt, dan zegt ze dat.
+- Een titel blijft verborgen zolang zijn aanbod laadt, zodat de lijst niet
+  verspringt. Lukt het laden niet, dan blijft de titel zichtbaar met de
+  foutmelding.
+- **Meer laden:** onderaan haalt een knop de volgende pagina van TMDB op. Na
+  het filteren blijven er soms weinig titels over. Een titel die al in de
+  lijst staat, komt er geen tweede keer bij.
+- **"In jouw abonnement"** telt ook gratis diensten mee die je aanvinkte. TMDB
+  zet VRT MAX en VTM GO vaak bij "gratis" of "met reclame", en dan zag je die
+  groene markering niet.
+
 ## 1.0.1 — 2026-10-31
 
 **Belgische diensten bovenaan, en Play, Streamz en Arte erbij.** Dezelfde

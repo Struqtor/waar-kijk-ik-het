@@ -1,7 +1,7 @@
 'use strict';
 
 // Ook in index.html (?v= achter app.css en app.js) en in CHANGELOG.md.
-const VERSION = '1.0.1';
+const VERSION = '1.1.0';
 const API = 'https://api.themoviedb.org/3';
 const IMG = 'https://image.tmdb.org/t/p/';
 const LANG = 'nl-NL';
@@ -71,10 +71,13 @@ function languageCountry() {
   return 'BE';
 }
 
+const AVAIL = ['all', 'here', 'mine'];
+
 const state = {
   token: store.get('token', ''),
   country: store.get('country', null) || { code: languageCountry(), source: 'taal' },
   subs: new Set(store.get('subs', [])),
+  avail: AVAIL.includes(store.get('avail')) ? store.get('avail') : 'all',
   type: 'all',
   query: '',
   regions: null,
@@ -162,36 +165,58 @@ function getProviders(item) {
 
 /* ---------- Lijst ---------- */
 
+// TMDB geeft hoogstens 500 pagina's terug.
+const MAX_PAGE = 500;
+const paging = { page: 0, total: 0, seen: new Set() };
+
 let listCtl;
-async function loadList() {
+async function loadList(more = false) {
   if (!state.token) return;
   listCtl?.abort();
   listCtl = new AbortController();
   const { signal } = listCtl;
   const q = state.query.trim();
   const t = state.type;
+  const page = more ? paging.page + 1 : 1;
   const results = $('#results');
+  const moreBtn = $('#more-btn');
   $('#list-title').textContent = q ? `Resultaten voor “${q}”` : 'Populair deze week';
-  results.setAttribute('aria-busy', 'true');
+  if (more) {
+    moreBtn.disabled = true;
+    moreBtn.textContent = 'Laden…';
+  } else {
+    results.setAttribute('aria-busy', 'true');
+    moreBtn.hidden = true;
+  }
   try {
     const data = q
-      ? await api(t === 'all' ? '/search/multi' : `/search/${t}`, { query: q, language: LANG, include_adult: 'false' }, signal)
-      : await api(`/trending/${t}/week`, { language: LANG }, signal);
+      ? await api(t === 'all' ? '/search/multi' : `/search/${t}`, { query: q, language: LANG, include_adult: 'false', page }, signal)
+      : await api(`/trending/${t}/week`, { language: LANG, page }, signal);
     const items = (data.results || [])
       .map((r) => ({ ...r, media_type: r.media_type || t }))
       .filter((r) => r.media_type === 'movie' || r.media_type === 'tv');
+    paging.page = page;
+    paging.total = Math.min(data.total_pages || 1, MAX_PAGE);
     hideNotice();
-    renderList(items, q);
+    if (more) appendItems(items);
+    else renderList(items, q);
   } catch (e) {
     if (e.name !== 'AbortError') handleError(e);
   } finally {
-    if (!signal.aborted) results.removeAttribute('aria-busy');
+    if (!signal.aborted) {
+      results.removeAttribute('aria-busy');
+      moreBtn.disabled = false;
+      moreBtn.textContent = 'Meer laden';
+      moreBtn.hidden = !cards.length || paging.page >= paging.total;
+      updateFilterNote();
+    }
   }
 }
 
 function renderList(items, q) {
   const ol = $('#results');
   cards = [];
+  paging.seen.clear();
   ol.replaceChildren();
   if (!items.length) {
     ol.append(h('li', { class: 'empty' }, q
@@ -199,9 +224,20 @@ function renderList(items, q) {
       : 'Geen titels gevonden.'));
     return;
   }
+  appendItems(items);
+}
+
+function appendItems(items) {
+  const ol = $('#results');
   for (const item of items) {
+    // Een volgende pagina kan titels herhalen als de lijst intussen verschoof.
+    const key = item.media_type + ':' + item.id;
+    if (paging.seen.has(key)) continue;
+    paging.seen.add(key);
     const card = buildCard(item);
-    ol.append(h('li', null, card.el));
+    card.li = h('li', null, card.el);
+    applyFilter(card);
+    ol.append(card.li);
     enqueue(() => (card.el.isConnected ? getProviders(item) : null))
       .then((res) => {
         if (!res) return;
@@ -214,6 +250,52 @@ function renderList(items, q) {
 
 function refillAll() {
   for (const card of cards) if (card.results) card.fill();
+  updateFilterNote();
+}
+
+/* ---------- Filter ---------- */
+
+function matches(v) {
+  if (state.avail === 'here') return v.any;
+  if (state.avail === 'mine') return v.mine.length > 0;
+  return true;
+}
+
+// Een kaart die nog laadt, blijft verborgen zolang de filter aanstaat: zo verspringt er niets.
+// Een kaart waarvan het aanbod niet laadde, blijft zichtbaar, met de foutmelding.
+function applyFilter(card) {
+  if (!card.li) return;
+  card.li.hidden = card.v ? !matches(card.v) : !card.failed && state.avail !== 'all';
+}
+
+function updateFilterNote() {
+  const note = $('#filter-note');
+  let text = '';
+  if (state.avail !== 'all' && cards.length) {
+    const hidden = cards.filter((c) => c.v && !matches(c.v)).length;
+    const pending = cards.filter((c) => !c.v && !c.failed).length;
+    const visible = cards.length - hidden - pending;
+    const more = paging.page < paging.total;
+    if (state.avail === 'mine' && ![...state.subs].some((id) => typeof id === 'number')) {
+      text = 'Je hebt nog geen diensten aangevinkt. Kies ze via Mijn diensten bovenaan.';
+    } else if (hidden) {
+      const why = state.avail === 'here' ? `niet te zien in ${countryName(state.country.code)}` : 'niet in jouw diensten';
+      text = `${hidden} van ${cards.length} titels verborgen: ${why}.`;
+      if (!visible && !pending) text += more ? ' Tik op “Meer laden” voor meer titels.' : '';
+    } else if (pending) {
+      text = 'Beschikbaarheid laden…';
+    }
+  }
+  if (note.textContent !== text) note.textContent = text;
+  note.hidden = !text;
+}
+
+function setAvail(value) {
+  state.avail = value;
+  store.set('avail', value);
+  document.querySelectorAll('[data-avail]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.avail === value)));
+  cards.forEach(applyFilter);
+  updateFilterNote();
 }
 
 function poster(item, title) {
@@ -244,14 +326,22 @@ function buildCard(item) {
     detail);
   const card = {
     el,
+    li: null,
     results: null,
+    v: null,
+    failed: false,
     fill() {
-      const v = view(card.results);
-      avail.replaceChildren(...summary(v));
-      detail.replaceChildren(...details(item, v));
+      card.v = view(card.results);
+      avail.replaceChildren(...summary(card.v));
+      detail.replaceChildren(...details(item, card.v));
+      applyFilter(card);
+      updateFilterNote();
     },
     fail(e) {
+      card.failed = true;
       avail.replaceChildren(h('span', { class: 'none' }, 'Beschikbaarheid kon niet geladen worden.'));
+      applyFilter(card);
+      updateFilterNote();
       if (e?.kind === 'auth' || e?.kind === 'offline') handleError(e);
     },
   };
@@ -287,7 +377,8 @@ function view(results) {
     code,
     link: /^https:\/\/www\.themoviedb\.org\//.test(r.link || '') ? r.link : null,
     lanes,
-    mine: lanes.sub.filter((p) => state.subs.has(p.provider_id)),
+    // Ook de gratis baan: VRT MAX en VTM GO staan bij TMDB vaak als gratis of met reclame.
+    mine: uniq([...lanes.sub, ...lanes.free]).filter((p) => state.subs.has(p.provider_id)),
     elsewhere,
     any: Object.values(lanes).some((l) => l.length),
   };
@@ -603,7 +694,7 @@ async function loadSubs() {
   groups.push(subsGroup(own.length ? 'Overige' : null, ordered.map(item)));
   if (local?.extra?.length) {
     groups.push(subsGroup('Zonder gegevens bij TMDB', local.extra.map((s) => subItem(s.id, s.name, null)),
-      'TMDB weet niet wat er bij deze diensten te zien is. Bij elke titel krijg je een link om er zelf te zoeken.'));
+      'TMDB weet niet wat er bij deze diensten te zien is. Bij elke titel krijg je een link om er zelf te zoeken. De filter “In mijn diensten” telt ze niet mee.'));
   }
   box.replaceChildren(...groups);
 }
@@ -706,14 +797,20 @@ document.addEventListener('keydown', (e) => {
   $('#q').focus();
 });
 
-document.querySelectorAll('.seg button').forEach((btn) => {
+document.querySelectorAll('[data-type]').forEach((btn) => {
   btn.addEventListener('click', () => {
     if (state.type === btn.dataset.type) return;
     state.type = btn.dataset.type;
-    document.querySelectorAll('.seg button').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+    document.querySelectorAll('[data-type]').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
     loadList();
   });
 });
+document.querySelectorAll('[data-avail]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    if (state.avail !== btn.dataset.avail) setAvail(btn.dataset.avail);
+  });
+});
+$('#more-btn').addEventListener('click', () => loadList(true));
 
 $('#country-btn').addEventListener('click', () => {
   fillCountrySelect();
@@ -759,5 +856,6 @@ document.querySelectorAll('dialog').forEach((dlg) => {
 });
 
 document.querySelectorAll('[data-version]').forEach((el) => { el.textContent = 'Versie ' + VERSION; });
+setAvail(state.avail);
 renderCountry();
 start();

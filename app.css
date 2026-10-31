@@ -141,6 +141,7 @@ h1 {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 
+.filters { display: flex; flex-wrap: wrap; gap: 8px 18px; }
 .seg { display: flex; gap: 6px; }
 .seg button {
   min-height: 32px;
@@ -200,7 +201,10 @@ main .wrap { padding-block: 16px 32px; display: grid; gap: 12px; }
   font-size: 14px;
 }
 
+.filter-note { margin: -2px 0 10px; }
 .results { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.more-row { display: flex; justify-content: center; margin-top: 14px; }
+.more-row .btn:disabled { opacity: .6; cursor: default; }
 .results[aria-busy="true"] { opacity: .55; transition: opacity .2s; }
 .empty { padding: 24px 4px; color: var(--muted); }
 

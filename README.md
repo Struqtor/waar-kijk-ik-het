@@ -1,6 +1,6 @@
 # Waar kijk ik het?
 
-Zoek een film of serie en zie meteen waar je hem kunt kijken in het land waar je bent: in een abonnement, gratis, te huur of te koop.
+Zoek een film of serie en zie meteen waar je hem kunt kijken in het land waar je bent: in een abonnement, gratis, te huur of te koop. Met de schakelaar "Hier te zien" of "In mijn diensten" verberg je wat je toch niet kunt kijken.
 
 - Gegevens: JustWatch, via de TMDB-API. Je hebt een gratis, persoonlijk TMDB **API Read Access Token** nodig; dat blijft in je browser.
 - Lokale diensten: per land in `LOCAL` in `app.js`. Ze komen bovenaan in "Mijn diensten". Diensten die TMDB niet kent (in België: Play, Streamz en Arte) krijgen per titel een zoeklink naar hun eigen site. Of de titel daar echt staat, weet de app niet.
