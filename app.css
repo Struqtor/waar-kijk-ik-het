@@ -323,6 +323,7 @@ main .wrap { padding-block: 16px 32px; display: grid; gap: 12px; }
 .ext { justify-self: start; font-weight: 650; text-decoration: none; }
 .ext:hover { text-decoration: underline; }
 .ext::after { content: " ↗"; }
+.search-links { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 0 0 4px; font-size: 14px; }
 .elsewhere { display: grid; gap: 3px; margin: 0; padding: 0; list-style: none; font-size: 13.5px; }
 .elsewhere li { display: grid; grid-template-columns: 10em minmax(0, 1fr); gap: 8px; }
 .elsewhere li.is-mine { color: var(--mine-ink); font-weight: 600; }
@@ -421,6 +422,15 @@ dialog::backdrop { background: rgb(10 14 24 / .5); }
   -webkit-overflow-scrolling: touch;
 }
 .field { display: grid; gap: 6px; }
+.subs-groups, .subs-group { display: grid; gap: 8px; }
+.subs-groups { gap: 18px; }
+.subs-group h3 {
+  margin: 0;
+  font: 700 11px/1.2 var(--f-data);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
 .subs {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -454,6 +464,7 @@ dialog::backdrop { background: rgb(10 14 24 / .5); }
 
 .foot { color: var(--muted); font-size: 12px; }
 .foot .wrap { padding-block: 4px calc(28px + env(safe-area-inset-bottom, 0px)); }
+.foot p { margin: 0 0 4px; }
 
 @media (max-width: 520px) {
   .detail { padding-left: 12px; }

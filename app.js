@@ -1,5 +1,7 @@
 'use strict';
 
+// Ook in index.html (?v= achter app.css en app.js) en in CHANGELOG.md.
+const VERSION = '1.0.1';
 const API = 'https://api.themoviedb.org/3';
 const IMG = 'https://image.tmdb.org/t/p/';
 const LANG = 'nl-NL';
@@ -13,6 +15,21 @@ const LANES = [
   { key: 'rent', label: 'Huren', names: false, max: 6 },
   { key: 'buy', label: 'Kopen', names: false, max: 6 },
 ];
+// Per land: diensten van eigen bodem eerst in "Mijn diensten" (herkend op naam, enkel voor de volgorde),
+// en diensten die TMDB niet kent. Van die laatste is het aanbod onbekend: de app geeft alleen een zoeklink.
+const LOCAL = {
+  BE: {
+    local: ['VRT MAX', 'VTM GO', 'RTL Play', 'RTBF Auvio', 'Telenet', 'Be TV Go'],
+    extra: [
+      // Play (ex-GoPlay) neemt geen zoekterm uit de link over.
+      { id: 'x-play', name: 'Play', url: 'https://www.play.tv/zoeken' },
+      { id: 'x-streamz', name: 'Streamz', url: 'https://www.streamz.be/streamz/zoeken', param: 'query' },
+      // Arte heeft geen Nederlandstalige site.
+      { id: 'x-arte', name: 'Arte', url: 'https://www.arte.tv/fr/search/', param: 'q' },
+    ],
+  },
+};
+const EXTRA_HOSTS = new Set(['www.play.tv', 'www.streamz.be', 'www.arte.tv']);
 const SOURCE_LABEL = { gps: 'GPS', manual: 'Gekozen', taal: 'Geschat' };
 const MESSAGES = {
   auth: 'TMDB herkent je sleutel niet. Kopieer het API Read Access Token opnieuw en plak het hieronder.',
@@ -323,6 +340,36 @@ function summary(v) {
   return out;
 }
 
+// De aangevinkte diensten zonder TMDB-gegevens, of alle als er geen aangevinkt is.
+function extraServices() {
+  const extra = LOCAL[state.country.code]?.extra || [];
+  const mine = extra.filter((s) => state.subs.has(s.id));
+  return mine.length ? mine : extra;
+}
+
+function searchLink(service, title) {
+  let url;
+  try { url = new URL(service.url); } catch { return null; }
+  if (url.protocol !== 'https:' || !EXTRA_HOSTS.has(url.hostname)) return null;
+  if (service.param) url.searchParams.set(service.param, title);
+  return url.href;
+}
+
+function searchBlock(item) {
+  const title = item.title || item.name || '';
+  const links = extraServices()
+    .map((s) => ({ s, href: searchLink(s, title) }))
+    .filter((l) => l.href);
+  if (!links.length) return null;
+  const typed = links.filter((l) => !l.s.param).map((l) => l.s.name);
+  return h('div', { class: 'block' },
+    h('h4', null, 'Zelf zoeken bij'),
+    h('p', { class: 'search-links' }, links.map(({ s, href }) =>
+      h('a', { class: 'ext', href, target: '_blank', rel: 'noopener noreferrer' }, s.name))),
+    h('p', { class: 'hint' }, 'TMDB weet niet of de titel hier staat.'
+      + (typed.length ? ` Bij ${typed.join(' en ')} typ je de titel zelf in.` : '')));
+}
+
 function details(item, v) {
   const out = [];
   if (item.overview) out.push(h('p', { class: 'overview' }, item.overview));
@@ -338,6 +385,8 @@ function details(item, v) {
     out.push(h('a', { class: 'ext', href: v.link, target: '_blank', rel: 'noopener noreferrer' },
       `Aanbieders en links in ${countryName(v.code)}`));
   }
+  const search = searchBlock(item);
+  if (search) out.push(search);
   if (v.elsewhere.length) {
     const max = 8;
     const ul = h('ul', { class: 'elsewhere' });
@@ -498,43 +547,65 @@ async function loadRegions() {
 
 /* ---------- Mijn diensten ---------- */
 
+function subItem(id, name, logo) {
+  const input = h('input', { type: 'checkbox', id: 'sub-' + id });
+  input.checked = state.subs.has(id);
+  input.addEventListener('change', () => {
+    if (input.checked) state.subs.add(id);
+    else state.subs.delete(id);
+    store.set('subs', [...state.subs]);
+    refillAll();
+  });
+  const img = logo ? h('img', { src: IMG + 'w92' + logo, alt: '', width: '24', height: '24', loading: 'lazy' }) : null;
+  img?.addEventListener('error', () => img.remove(), { once: true });
+  return h('li', { 'data-name': name.toLowerCase() },
+    h('label', { for: input.id }, input, img, h('span', null, name)));
+}
+
+function subsGroup(title, items, hint) {
+  return h('section', { class: 'subs-group' },
+    title && h('h3', null, title),
+    hint && h('p', { class: 'hint' }, hint),
+    h('ul', { class: 'subs' }, items));
+}
+
 async function loadSubs() {
   const code = state.country.code;
-  const list = $('#subs');
+  const box = $('#subs');
   $('#subs-country').textContent = countryName(code);
   $('#subs-filter').value = '';
   if (state.subsList?.code !== code) {
-    list.replaceChildren(h('li', { class: 'hint' }, 'Diensten laden…'));
+    box.replaceChildren(h('p', { class: 'hint' }, 'Diensten laden…'));
     try {
       const [movie, tv] = await Promise.all(['movie', 'tv'].map((k) => api(`/watch/providers/${k}`, { watch_region: code, language: LANG })));
       const prio = (p) => p.display_priorities?.[code] ?? p.display_priority ?? 999;
       const providers = uniq([...(movie.results || []), ...(tv.results || [])]).sort((a, b) => prio(a) - prio(b));
       state.subsList = { code, providers };
     } catch (e) {
-      list.replaceChildren(h('li', { class: 'hint' }, MESSAGES[e.kind] || MESSAGES.http));
+      box.replaceChildren(h('p', { class: 'hint' }, MESSAGES[e.kind] || MESSAGES.http));
       return;
     }
   }
-  // Aangevinkte diensten bovenaan, maar alleen bij openen: niets verspringt onder je vinger.
   const { providers } = state.subsList;
+  const local = LOCAL[code];
+  const names = (local?.local || []).map((n) => n.toLowerCase());
+  const rank = (p) => names.indexOf(p.provider_name.toLowerCase());
+  const own = providers.filter((p) => rank(p) >= 0).sort((a, b) => rank(a) - rank(b));
+  const rest = providers.filter((p) => rank(p) < 0);
+  // Aangevinkte diensten bovenaan, maar alleen bij openen: niets verspringt onder je vinger.
   const ordered = [
-    ...providers.filter((p) => state.subs.has(p.provider_id)),
-    ...providers.filter((p) => !state.subs.has(p.provider_id)),
+    ...rest.filter((p) => state.subs.has(p.provider_id)),
+    ...rest.filter((p) => !state.subs.has(p.provider_id)),
   ];
-  list.replaceChildren(...ordered.map((p) => {
-    const input = h('input', { type: 'checkbox', id: 'sub-' + p.provider_id });
-    input.checked = state.subs.has(p.provider_id);
-    input.addEventListener('change', () => {
-      if (input.checked) state.subs.add(p.provider_id);
-      else state.subs.delete(p.provider_id);
-      store.set('subs', [...state.subs]);
-      refillAll();
-    });
-    const img = p.logo_path ? h('img', { src: IMG + 'w92' + p.logo_path, alt: '', width: '24', height: '24', loading: 'lazy' }) : null;
-    img?.addEventListener('error', () => img.remove(), { once: true });
-    return h('li', { 'data-name': p.provider_name.toLowerCase() },
-      h('label', { for: input.id }, input, img, h('span', null, p.provider_name)));
-  }));
+  const item = (p) => subItem(p.provider_id, p.provider_name, p.logo_path);
+  const groups = [];
+  if (own.length) groups.push(subsGroup(`Diensten in ${countryName(code)}`, own.map(item)));
+  groups.push(subsGroup(own.length ? 'Overige' : null, ordered.map(item)));
+  if (local?.extra?.length) {
+    groups.push(subsGroup('Zonder gegevens bij TMDB', local.extra.map((s) => subItem(s.id, s.name, null)),
+      'TMDB weet niet wat er bij deze diensten te zien is. Bij elke titel krijg je een link om er zelf te zoeken.'));
+  }
+  box.replaceChildren(...groups);
 }
 
 /* ---------- Start ---------- */
@@ -665,6 +736,7 @@ $('#settings-btn').addEventListener('click', () => {
 $('#subs-filter').addEventListener('input', (e) => {
   const q = e.target.value.trim().toLowerCase();
   $('#subs').querySelectorAll('li[data-name]').forEach((li) => { li.hidden = q && !li.dataset.name.includes(q); });
+  $('#subs').querySelectorAll('.subs-group').forEach((g) => { g.hidden = !g.querySelector('li[data-name]:not([hidden])'); });
 });
 $('#token-clear').addEventListener('click', () => {
   store.del('token');
@@ -686,5 +758,6 @@ document.querySelectorAll('dialog').forEach((dlg) => {
   });
 });
 
+document.querySelectorAll('[data-version]').forEach((el) => { el.textContent = 'Versie ' + VERSION; });
 renderCountry();
 start();

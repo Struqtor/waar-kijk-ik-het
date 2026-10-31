@@ -28,6 +28,30 @@ Bij elke versie:
 
 Wat besproken is maar nog niet gebouwd, staat in [BACKLOG.md](BACKLOG.md).
 
+## 1.0.1 — 2026-10-31
+
+**Belgische diensten bovenaan, en Play, Streamz en Arte erbij.** Dezelfde
+lijst, alleen vollediger, dus het derde cijfer.
+
+- **Mijn diensten** toont in België eerst "Diensten in België": VRT MAX, VTM
+  GO, RTL Play, RTBF Auvio, Telenet en Be TV Go. TMDB kende die al, maar ze
+  stonden tussen zo'n 70 andere diensten. Daarna volgen de overige diensten.
+  Welke diensten bovenaan komen, staat per land in `LOCAL` in `app.js`; voor
+  andere landen blijft de volgorde van TMDB.
+- **Play** (ex-GoPlay, nu play.tv), **Streamz** en **Arte** staan niet bij
+  TMDB en ook niet bij JustWatch. Niemand weet dus welke titels ze hebben. Ze
+  staan apart onder "Zonder gegevens bij TMDB". Bij elke titel staat een blok
+  "Zelf zoeken bij" met een link die op de site van die dienst zoekt: de
+  diensten die je aanvinkte, of alle drie als je er geen aanvinkte.
+  - Streamz en Arte krijgen de titel mee in de link.
+  - Play laat dat niet toe; die link opent de zoekpagina.
+  - Arte heeft geen Nederlandstalige site, dus de link gaat naar de Franse.
+  - De app opent alleen links naar deze drie sites, en pas als je erop tikt.
+    Er gaat geen verwijzing (referrer) mee.
+- Het versienummer staat onderaan de pagina en in het venster Mijn diensten.
+- `app.css` en `app.js` worden geladen met `?v=` en het versienummer, zodat een
+  nieuwe versie meteen volledig doorkomt.
+
 ## 1.0.0 — 2026-10-30
 
 **Eerste release.** De versie zoals ze op 30 oktober live ging. De tag is

@@ -10,8 +10,8 @@
 <title>Waar kijk ik het?</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='6' width='26' height='18' rx='4' fill='%23141A2C'/%3E%3Crect x='7' y='26' width='4' height='3' rx='1' fill='%231D8A4C'/%3E%3Crect x='12' y='26' width='4' height='3' rx='1' fill='%23B88600'/%3E%3Crect x='17' y='26' width='4' height='3' rx='1' fill='%232E6BD3'/%3E%3Crect x='22' y='26' width='4' height='3' rx='1' fill='%23CF3F37'/%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="app.css">
-<script src="app.js" defer></script>
+<link rel="stylesheet" href="app.css?v=1.0.1">
+<script src="app.js?v=1.0.1" defer></script>
 </head>
 <body>
 <header class="top">
@@ -80,7 +80,10 @@
 </main>
 
 <footer class="foot">
-  <div class="wrap">Beschikbaarheid: JustWatch, via TMDB. Deze app gebruikt de TMDB-API maar is niet goedgekeurd of gecertificeerd door TMDB.</div>
+  <div class="wrap">
+    <p data-version></p>
+    <p>Beschikbaarheid: JustWatch, via TMDB. Deze app gebruikt de TMDB-API maar is niet goedgekeurd of gecertificeerd door TMDB.</p>
+  </div>
 </footer>
 
 <dialog id="country-dlg" aria-labelledby="country-dlg-title">
@@ -110,12 +113,13 @@
     <p class="hint">Vink aan waar je een abonnement op hebt. Titels die daarin zitten, krijgen een groene markering. Aanbod in <span id="subs-country"></span>.</p>
     <label class="sr" for="subs-filter">Zoek een dienst</label>
     <input id="subs-filter" type="search" placeholder="Zoek een dienst" autocomplete="off">
-    <ul id="subs" class="subs"></ul>
+    <div id="subs" class="subs-groups"></div>
     <section class="token-box">
       <h3>TMDB-sleutel</h3>
       <p id="token-state" class="hint"></p>
       <button id="token-clear" class="btn btn-ghost" type="button">Sleutel wissen</button>
     </section>
+    <p class="hint" data-version></p>
   </div>
 </dialog>
 </body>
